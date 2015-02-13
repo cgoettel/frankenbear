@@ -1,0 +1,16 @@
+*.aux
+*.bbl
+*.blg
+*.brf
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.snm
+*.swp
+*.toc
+*.txt
+cs235/?/lab?
+*.zip
+*~lock.*docx*
