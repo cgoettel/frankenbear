@@ -16,42 +16,7 @@
 //     Detect change in relative temperature
 //     Wiggle ears.
 // NOTE: I fear that this isn't going to work. We're going to probably have to use an IR proximity sensor.
-//TMP36 Pin Variables
-//int sensorPin = 0; // the analog pin the TMP36's Vout (sense) pin is connected to
-// the resolution is 10 mV / degree centigrade with a
-// 500 mV offset to allow for negative temperatures
-// This code assumes the temperature sensor is plugged into A0, 5V, and GND. Looking at the flat side of the temperature sensor, the left pin is power, middle is analog input, and right is GND.
-//void setup()
-//{
-//  Serial.begin(9600);  // Start the serial connection with the computer to view the result open the serial monitor.
-//}
-//
-//void loop()
-//{
-//  //getting the voltage reading from the temperature sensor
-//  int reading = analogRead(sensorPin);  
-//  
-//  // converting that reading to voltage, for 3.3v arduino use 3.3
-//  float voltage = reading * 5.0;
-//  voltage /= 1024.0; 
-//  
-//  // print out the voltage
-//  Serial.print(voltage); 
-//  Serial.println(" volts");
-//  
-//  // now print out the temperature
-//  float temperatureC = (voltage - 0.5) * 100 ;  //converting from 10 mv per degree with 500 mV offset
-//  //to degrees ((voltage - 500mV) times 100)
-//  Serial.print(temperatureC); 
-//  Serial.println(" degrees C");
-//  
-//  // now convert to Fahrenheit
-//  float temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;
-//  Serial.print(temperatureF); 
-//  Serial.println(" degrees F");
-//  
-//  delay(1000);                                     // waiting 1 second
-//}
+
 
 
 
@@ -86,10 +51,10 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define MICRO_SERVO_MIN 160
 #define MICRO_SERVO_MAX 584
 
-#define LEFT_ARM_OPEN    266
-#define LEFT_ARM_CLOSED  372
-#define RIGHT_ARM_CLOSED 372
-#define RIGHT_ARM_OPEN   478
+#define LEFT_ARM_OPEN    372
+#define LEFT_ARM_CLOSED  266
+#define RIGHT_ARM_CLOSED 478
+#define RIGHT_ARM_OPEN   372
 
 #define LEFT_EAR_BACK 475
 #define LEFT_EAR_FORWARD 265
@@ -102,8 +67,21 @@ uint8_t right_arm = 1;
 uint8_t left_ear = 2;
 uint8_t right_ear = 3;
 
-int flag = 0;
-int kissed_flag = 1;
+int hug_flag = 0;
+int kissed_flag = 0;
+int test_flag = 0;
+
+int normal_light_flag = 0;
+
+int photocellPin = 0;     // the cell and 10K pulldown are connected to a0
+int photocellReading;     // the analog reading from the sensor divider
+int LEDpin = 11;          // connect Red LED to pin 11 (PWM pin)
+int LEDbrightness;
+
+int speakerPin = 12;
+int numTones = 10;
+int tones[] = {261, 277, 294, 311, 330, 349, 370, 392, 415, 440};
+//            mid C  C#   D    D#   E    F    F#   G    G#   A
 
 void setup()
 {
@@ -115,20 +93,23 @@ void setup()
   pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
   
   // Sets left_arm and right_arm at their min and max values.
-//  pwm.setPWM(left_arm, 0, LEFT_ARM_OPEN);
-//  delay(1000);
-//  pwm.setPWM(right_arm, 0, RIGHT_ARM_OPEN);
-//  delay(1000);
+  pwm.setPWM(left_arm, 0, LEFT_ARM_OPEN);
+  pwm.setPWM(right_arm, 0, RIGHT_ARM_OPEN);
   
   // Sets left_arm and right_arm at their min and max values.
   pwm.setPWM(left_ear, 0, MIDDLE_EAR);
-//  delay(1000);
   pwm.setPWM(right_ear, 0, MIDDLE_EAR);
-//  delay(1000);
+  delay(1000);
 }
 
 void loop()
 {
+  photocellReading = analogRead(photocellPin);
+  Serial.print("Analog reading = ");
+  Serial.println(photocellReading);     // the raw analog reading
+  // invert the reading from 0-1023 back to 1023-0
+//  photocellReading = 1023 - photocellReading;
+  
   // When kissed or hugged (proximity sensor)
   if ( kissed_flag > 0 )
   {
@@ -142,11 +123,36 @@ void loop()
   }
   
   // On button press?
-  if ( flag )
+  if ( hug_flag )
   {
     hug();
-    flag = 0;
+    hug_flag = 0;
   }
+  
+  // When it gets bright or dark, make a sound.
+  // Stop playing the sound until it's normal lighting out again.
+  if ( photocellReading > 800 && photocellReading < 950 )
+  {
+    normal_light_flag = 1;
+  }
+  
+  if ( photocellReading < 300 && normal_light_flag ) //it is dark
+  {
+    tone(speakerPin, tones[0]);//play mid C
+    delay(500);
+    noTone(speakerPin);
+    normal_light_flag = 0;
+  }
+  
+  if ( photocellReading > 950 && normal_light_flag ) //it is bright
+  {
+    tone(speakerPin, tones[9]); //play A
+    delay(500);
+    noTone(speakerPin);
+    normal_light_flag = 0;
+  }
+  
+  // check if manually moved
 }
 
 void wiggle_ears()
@@ -161,23 +167,10 @@ void wiggle_ears()
 
 void hug()
 {
-  // Bring arms in together.
-  uint16_t pulselen_right = RIGHT_ARM_OPEN;
-  for (uint16_t pulselen_left = LEFT_ARM_OPEN; pulselen_left < LEFT_ARM_CLOSED && pulselen_right > RIGHT_ARM_CLOSED; pulselen_left++) {
-    pwm.setPWM(left_arm, 0, pulselen_left);
-    pwm.setPWM(right_arm, 0, pulselen_right);
-    pulselen_right--;
-    delay(1);
-  }
+  pwm.setPWM(left_arm, 0, LEFT_ARM_CLOSED);
+  pwm.setPWM(right_arm, 0, RIGHT_ARM_CLOSED);
   delay(1000);
-  
-  // Release arms.
-  uint16_t pulselen_left = LEFT_ARM_CLOSED;
-  for (uint16_t pulselen_right = RIGHT_ARM_CLOSED; pulselen_right < RIGHT_ARM_OPEN && pulselen_left > LEFT_ARM_OPEN; pulselen_right++) {
-    pwm.setPWM(right_arm, 0, pulselen_right);
-    pwm.setPWM(left_arm, 0, pulselen_left);
-    pulselen_left--;
-    delay(1);
-  }
-  delay(1000);
+  pwm.setPWM(right_arm, 0, RIGHT_ARM_OPEN);
+  pwm.setPWM(left_arm, 0, LEFT_ARM_OPEN);
+  delay(500);
 }
