@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include "pitches.h"
 #include <Adafruit_PWMServoDriver.h>
 
 // Uses the default address 0x40.
@@ -28,7 +29,7 @@ uint8_t right_ear = 3;
 int kissed_flag = 0;
 int normal_light_flag = 0;
 
-int photocellPin = 0;     // the cell and 10K pulldown are connected to a0
+int photocellPin = A5;     // the cell and 10K pulldown are connected to a0
 int photocellReading;     // the analog reading from the sensor divider
 int LEDpin = 11;          // connect Red LED to pin 11 (PWM pin)
 int LEDbrightness;
@@ -37,6 +38,13 @@ int speakerPin = 12;
 int numTones = 10;
 int tones[] = {261, 277, 294, 311, 330, 349, 370, 392, 415, 440};
 //            mid C  C#   D    D#   E    F    F#   G    G#   A
+
+int mary_had_a_little_lamb_notes[] = {
+  NOTE_E4, NOTE_D4, NOTE_C4, NOTE_D4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_C4, NOTE_D4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_E4, NOTE_D4, NOTE_C4
+};
+int mary_had_a_little_lamb_lengths[] = {
+  4, 4, 4, 4, 4, 4, 2, 4, 4, 2, 4, 4, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2
+};
 
 const int buttonPin = 2;     // the number of the pushbutton pin
 const int ledPin =  13;      // the number of the LED pin
@@ -65,40 +73,35 @@ void loop()
 {
   photocellReading = analogRead(photocellPin);
   Serial.print("Analog reading = ");
-  Serial.println(photocellReading);
+  Serial.print(photocellReading);
+  Serial.print(", ");
+  Serial.println(normal_light_flag);
 
-  // When kissed or hugged (light sensor), wiggle several times and stop.
-  if ( kissed_flag > 0 )
+  // When it gets bright or dark, make a sound.
+  // Stop playing the sound until it's normal lighting out again.
+  if ( photocellReading >= 700 && photocellReading <= 710 )
   {
-    while ( kissed_flag > 4 )
+    normal_light_flag = 1;
+  }
+
+  if ( photocellReading < 700 && normal_light_flag ) //it is dark
+  {
+    play_song();
+    normal_light_flag = 0;
+  }
+  else if ( photocellReading > 710 && normal_light_flag ) // it is bright
+  {
+//    tone(speakerPin, tones[9]); //play A
+//    delay(500);
+//    noTone(speakerPin);
+    while ( kissed_flag < 4 )
     {
       wiggle_ears();
       kissed_flag++;
     }
     
     reset_ears();
-  }
-
-  // When it gets bright or dark, make a sound.
-  // Stop playing the sound until it's normal lighting out again.
-  if ( photocellReading > 800 && photocellReading < 950 )
-  {
-    normal_light_flag = 1;
-  }
-
-  if ( photocellReading < 300 && normal_light_flag ) //it is dark
-  {
-    tone(speakerPin, tones[0]);//play mid C
-    delay(500);
-    noTone(speakerPin);
-    normal_light_flag = 0;
-  }
-
-  if ( photocellReading > 950 && normal_light_flag ) // it is bright
-  {
-    tone(speakerPin, tones[9]); //play A
-    delay(500);
-    noTone(speakerPin);
+    kissed_flag = 0;
     normal_light_flag = 0;
   }
   
@@ -153,4 +156,18 @@ void reset_ears()
   // Sets left_ear and right_ear at the middle.
   pwm.setPWM(left_ear, 0, MIDDLE_EAR);
   pwm.setPWM(right_ear, 0, MIDDLE_EAR);
+}
+
+void play_song()
+{
+  // 26 notes long
+  for ( int i = 0; i < 26; i++ )
+  {
+    int note_length = 1000 / mary_had_a_little_lamb_lengths[i];
+    tone(speakerPin, mary_had_a_little_lamb_notes[i], note_length);
+    
+    int pause_between_notes = note_length * 1.30;
+    delay(pause_between_notes);
+    noTone(speakerPin);
+  }
 }
