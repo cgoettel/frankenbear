@@ -1,12 +1,14 @@
-#include <Wire.h>
-#include "pitches.h"
 #include <Adafruit_PWMServoDriver.h>
+#include <Wire.h>
+
+#include "pitches.h"
 
 // Uses the default address 0x40.
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-#define BIG_SERVO_MIN 160 // this is the 'minimum' pulse length count (out of 4096)
-#define BIG_SERVO_MAX 584 // this is the 'maximum' pulse length count (out of 4096)
+// These are the minimum and maximum pulse length counts (out of 4096) for our servos.
+#define BIG_SERVO_MIN 160
+#define BIG_SERVO_MAX 584
 #define MICRO_SERVO_MIN 160
 #define MICRO_SERVO_MAX 584
 
@@ -29,16 +31,13 @@ uint8_t right_ear = 3;
 int kissed_flag = 0;
 int normal_light_flag = 0;
 
-int photocellPin = A5;     // the cell and 10K pulldown are connected to a0
-int photocellReading;     // the analog reading from the sensor divider
-int LEDpin = 11;          // connect Red LED to pin 11 (PWM pin)
-int LEDbrightness;
+int photocell_pin = A5;
+int photocell_reading;
+
+const int button_pin = 2;
+const int button_state = 0;
 
 int speakerPin = 12;
-int numTones = 10;
-int tones[] = {261, 277, 294, 311, 330, 349, 370, 392, 415, 440};
-//            mid C  C#   D    D#   E    F    F#   G    G#   A
-
 int mary_had_a_little_lamb_notes[] = {
   NOTE_E4, NOTE_D4, NOTE_C4, NOTE_D4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_C4, NOTE_D4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_E4, NOTE_D4, NOTE_C4
 };
@@ -46,82 +45,64 @@ int mary_had_a_little_lamb_lengths[] = {
   4, 4, 4, 4, 4, 4, 2, 4, 4, 2, 4, 4, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2
 };
 
-const int buttonPin = 2;     // the number of the pushbutton pin
-const int ledPin =  13;      // the number of the LED pin
-int buttonState = 0;         // variable for reading the pushbutton status
-
 void setup()
 {
-  // Initialize serial port.
+  // Initialize serial port at 9600 baud.
   Serial.begin(9600);
 
   pwm.begin();
-
   pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz.
-
+  
+  // Initialize the pushbutton pin as an input.
+  pinMode(button_pin, INPUT);
+  
+  // Put arms and ears at normal position and wait for that to happen.
   reset_arms();
   reset_ears();
   delay(1000);
-  
-  // initialize the LED pin as an output:
-  pinMode(ledPin, OUTPUT);      
-  // initialize the pushbutton pin as an input:
-  pinMode(buttonPin, INPUT);   
 }
 
 void loop()
 {
-  photocellReading = analogRead(photocellPin);
+  photocell_reading = analogRead(photocell_pin);
   Serial.print("Analog reading = ");
-  Serial.print(photocellReading);
-  Serial.print(", ");
-  Serial.println(normal_light_flag);
+  Serial.print(photocell_reading);
+  // Commented out because it's unneeded debugging information.
+  // Serial.print(", ");
+  // Serial.println(normal_light_flag);
 
   // When it gets bright or dark, make a sound.
   // Stop playing the sound until it's normal lighting out again.
-  if ( photocellReading >= 700 && photocellReading <= 710 )
+  if ( photocell_reading >= 700 && photocell_reading <= 710 )
   {
     normal_light_flag = 1;
   }
 
-  if ( photocellReading < 700 && normal_light_flag ) //it is dark
+  if ( photocell_reading < 700 && normal_light_flag )
   {
-    play_song();
+    play_song(0);
     normal_light_flag = 0;
   }
-  else if ( photocellReading > 710 && normal_light_flag ) // it is bright
+  else if ( photocell_reading > 710 && normal_light_flag )
   {
-//    tone(speakerPin, tones[9]); //play A
-//    delay(500);
-//    noTone(speakerPin);
-    while ( kissed_flag < 4 )
+    for ( int i = 0; i < 4; i++ )
     {
       wiggle_ears();
-      kissed_flag++;
     }
     
     reset_ears();
-    kissed_flag = 0;
     normal_light_flag = 0;
   }
   
-  // read the state of the pushbutton value:
-  buttonState = digitalRead(buttonPin);
+  button_state = digitalRead(button_pin);
   
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH:
-  if ( buttonState == HIGH )
+  if ( button_state == HIGH )
   {
-    digitalWrite(ledPin, HIGH);
     hug();
     reset_arms();
   }
-  else
-  {
-    digitalWrite(ledPin, LOW);
-  }
   
-  // check if manually moved
+  // TODO: check if manually moved
 }
 
 void wiggle_ears()
@@ -146,25 +127,28 @@ void hug()
 
 void reset_arms()
 {
-  // Sets left_arm and right_arm at their min and max values.
+  // Sets left_arm and right_arm to their min and max values.
   pwm.setPWM(left_arm, 0, LEFT_ARM_OPEN);
   pwm.setPWM(right_arm, 0, RIGHT_ARM_OPEN);
 }
 
 void reset_ears()
 {
-  // Sets left_ear and right_ear at the middle.
+  // Sets left_ear and right_ear to the middle.
   pwm.setPWM(left_ear, 0, MIDDLE_EAR);
   pwm.setPWM(right_ear, 0, MIDDLE_EAR);
 }
 
-void play_song()
+void play_song(int song_number)
 {
   // 26 notes long
   for ( int i = 0; i < 26; i++ )
   {
-    int note_length = 1000 / mary_had_a_little_lamb_lengths[i];
-    tone(speakerPin, mary_had_a_little_lamb_notes[i], note_length);
+    if ( song_number == 0 )
+    {
+      int note_length = 1000 / mary_had_a_little_lamb_lengths[i];
+      tone(speakerPin, mary_had_a_little_lamb_notes[i], note_length);
+    }
     
     int pause_between_notes = note_length * 1.30;
     delay(pause_between_notes);
