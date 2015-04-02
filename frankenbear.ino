@@ -31,6 +31,8 @@
 uint16_t ambient_reading = 0;
 uint16_t proximity_reading = 0;
 
+int normal_proximity_flag = 0;
+
 // **********************
 // **** SERVO SHIELD ****
 // **********************
@@ -140,7 +142,7 @@ void loop()
     normal_light_flag = 1;
   }
   
-  if ( photocell_reading < 700 && normal_light_flag )
+  if ( photocell_reading < 650 && normal_light_flag )
   {
     play_song(0);
     normal_light_flag = 0;
@@ -177,7 +179,13 @@ void loop()
     delay(10);
   }
   
-  if ( ambient_reading < 50 || proximity_reading > 10000 )
+  // Don't wiggle again until it's normal proximity again.
+  if ( ambient_reading > 75 )
+  {
+    normal_proximity_flag = 1;
+  }
+  
+  if ( ambient_reading < 30 && normal_proximity_flag ) // proximity_reading doesn't work well through fabric.
   {
     for ( int i = 0; i < 4; i++ )
     {
@@ -185,6 +193,7 @@ void loop()
     }
     
     reset_ears();
+    normal_proximity_flag = 0;
   }
   
   // TODO: check if manually moved
