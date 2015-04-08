@@ -2,6 +2,8 @@
 #include <Wire.h>
 #include "pitches.h"
 
+#define DEBUG 0
+
 // **************************
 // **** PROXIMITY SENSOR ****
 // **************************
@@ -91,7 +93,6 @@ void setup()
   // Initialize serial port at 9600 baud.
   Serial.begin(9600);
   
-  Serial.println("VCNL");
   Wire.begin();
   pwm.begin();
   pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz.
@@ -104,20 +105,26 @@ void setup()
   }
   
   write8(VCNL4000_IRLED, 20);        // set to 20 * 10mA = 200mA
+#if DEBUG
+  Serial.println("VCNL");
   Serial.print("IR LED current = ");
   Serial.print(read8(VCNL4000_IRLED) * 10, DEC);
   Serial.println(" mA");
-  
   Serial.print("Proximity measurement frequency = ");
+#endif
   uint8_t freq = read8(VCNL4000_SIGNALFREQ);
+#if DEBUG
   if (freq == VCNL4000_3M125) Serial.println("3.125 MHz");
   if (freq == VCNL4000_1M5625) Serial.println("1.5625 MHz");
   if (freq == VCNL4000_781K25) Serial.println("781.25 KHz");
   if (freq == VCNL4000_390K625) Serial.println("390.625 KHz");
+#endif
   
   write8(VCNL4000_PROXIMITYADJUST, 0x81);
+#if DEBUG
   Serial.print("Proximity adjustment register = ");
   Serial.println(read8(VCNL4000_PROXIMITYADJUST), HEX);
+#endif
   
   // Initialize the pushbutton pin as an input.
   pinMode(button_pin, INPUT);
@@ -131,9 +138,6 @@ void setup()
 void loop()
 {
   photocell_reading = analogRead(photocell_pin);
-  Serial.print("Analog reading = ");
-  Serial.print(photocell_reading);
-  Serial.print("\t");
   
   // When it gets bright or dark, make a sound.
   // Don't play the sound again until it's normal lighting out.
@@ -169,10 +173,14 @@ void loop()
       ambient_reading = read16(VCNL4000_AMBIENTDATA);
       proximity_reading = read16(VCNL4000_PROXIMITYDATA);
       
-      Serial.print("Ambient = ");
+#if DEBUG == 1
+      Serial.print("Analog reading = ");
+      Serial.print(photocell_reading);
+      Serial.print("\tAmbient = ");
       Serial.print(ambient_reading);
       Serial.print("\tProximity = ");
       Serial.println(proximity_reading);
+#endif
       break;
     }
     
@@ -180,12 +188,12 @@ void loop()
   }
   
   // Don't wiggle again until it's normal proximity again.
-  if ( ambient_reading > 75 )
+  if ( ambient_reading > 45 )
   {
     normal_proximity_flag = 1;
   }
   
-  if ( ambient_reading < 30 && normal_proximity_flag ) // proximity_reading doesn't work well through fabric.
+  if ( ambient_reading < 30 && normal_proximity_flag ) // proximity_reading doesn't work well throu gh fabric.
   {
     for ( int i = 0; i < 4; i++ )
     {
