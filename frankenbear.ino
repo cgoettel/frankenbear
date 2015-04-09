@@ -2,6 +2,8 @@
 #include <Wire.h>
 #include "pitches.h"
 
+// Wiring information can be found in the project's README: https://github.com/cgoettel/frankenbear/blob/master/README.md
+
 #define DEBUG 0
 
 // **************************
@@ -42,8 +44,8 @@ int normal_proximity_flag = 0;
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 // These are the minimum and maximum pulse length counts (out of 4096).
-#define BIG_SERVO_MIN 160
-#define BIG_SERVO_MAX 584
+#define BIG_SERVO_MIN   160
+#define BIG_SERVO_MAX   584
 #define MICRO_SERVO_MIN 160
 #define MICRO_SERVO_MAX 584
 
@@ -52,15 +54,15 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define RIGHT_ARM_CLOSED 478
 #define RIGHT_ARM_OPEN   372
 
-#define LEFT_EAR_BACK 475
-#define LEFT_EAR_FORWARD 265
-#define RIGHT_EAR_BACK 265
+#define LEFT_EAR_BACK     475
+#define LEFT_EAR_FORWARD  265
+#define RIGHT_EAR_BACK    265
 #define RIGHT_EAR_FORWARD 475
-#define MIDDLE_EAR 370
+#define MIDDLE_EAR        370
 
-const uint8_t left_arm = 0;
+const uint8_t left_arm  = 0;
 const uint8_t right_arm = 1;
-const uint8_t left_ear = 2;
+const uint8_t left_ear  = 2;
 const uint8_t right_ear = 3;
 
 // *******************
@@ -86,6 +88,13 @@ int mary_had_a_little_lamb_notes[] = {
 };
 int mary_had_a_little_lamb_lengths[] = {
   4, 4, 4, 4, 4, 4, 2, 4, 4, 2, 4, 4, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2
+};
+
+int twinkle_twinkle_notes[] = {
+  NOTE_C4, NOTE_C4, NOTE_G4, NOTE_G4, NOTE_A4, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_C4, NOTE_G4, NOTE_G4, NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_G4, NOTE_G4, NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_C4, NOTE_C4, NOTE_G4, NOTE_G4, NOTE_A4, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_F4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_C4
+};
+int twinkle_twinkle_lengths[] = {
+  4, 4, 4, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4, 2
 };
 
 void setup()
@@ -137,10 +146,11 @@ void setup()
 
 void loop()
 {
-  photocell_reading = analogRead(photocell_pin);
-  
+  // PHOTOCELL
   // When it gets bright or dark, make a sound.
   // Don't play the sound again until it's normal lighting out.
+  photocell_reading = analogRead(photocell_pin);
+  
   if ( photocell_reading >= 700 && photocell_reading <= 710 )
   {
     normal_light_flag = 1;
@@ -152,6 +162,7 @@ void loop()
     normal_light_flag = 0;
   }
   
+  // BUTTON
   button_state = digitalRead(button_pin);
   
   if ( button_state == HIGH )
@@ -160,6 +171,7 @@ void loop()
     reset_arms();
   }
   
+  // PROXIMITY SENSOR
   // read ambient light
   write8(VCNL4000_COMMAND, VCNL4000_MEASUREAMBIENT | VCNL4000_MEASUREPROXIMITY);
   
@@ -204,9 +216,27 @@ void loop()
     normal_proximity_flag = 0;
   }
   
+  if ( Serial.available() > 0 )
+  {
+    // Read the incoming byte.
+    int incoming_byte = Serial.read();
+    incoming_byte -= 48;
+    
+    play_song(incoming_byte);
+    
+    // Echo it back to serial.
+#if DEGBUG   
+    Serial.println(incoming_byte, DEC);
+#endif
+    
+    incoming_byte = -1;
+  }
+  
   // TODO: check if manually moved
   // is this as simple as just resetting the ears and arms after every loop?
   // This would work, I think, but could also draw a lot more power than otherwise.
+  
+  // TODO: Change clock speed to save battery.
 }
 
 uint16_t readProximity() {
@@ -327,15 +357,34 @@ void reset_ears()
 
 void play_song(int song_number)
 {
+  if ( song_number < 0 )
+  {
+    return;
+  }
+  
+  int song_length = 0;
+  if ( song_number == 0 )
+  {
+    song_length = sizeof(mary_had_a_little_lamb_lengths)/sizeof(mary_had_a_little_lamb_lengths[0]);
+  }
+  else if ( song_number == 1 )
+  {
+    song_length = sizeof(twinkle_twinkle_lengths)/sizeof(twinkle_twinkle_lengths[0]);
+  }
+  
   int note_length = 0;
   
-  // 26 notes long
-  for ( int i = 0; i < 26; i++ )
+  for ( int i = 0; i < song_length; i++ )
   {
-    if ( song_number == 0 || song_number > 0 )
+    if ( song_number == 0 || song_number > 1 )
     {
       note_length = 1000 / mary_had_a_little_lamb_lengths[i];
       tone(speakerPin, mary_had_a_little_lamb_notes[i], note_length);
+    }
+    else if ( song_number == 1 )
+    {
+      note_length = 1000 / twinkle_twinkle_lengths[i];
+      tone(speakerPin, twinkle_twinkle_notes[i], note_length);
     }
     
     int pause_between_notes = note_length * 1.30;
