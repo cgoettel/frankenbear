@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{graphicx}
+\usepackage{booktabs}
 
 \title{Frankenbear final documentation}
 \author{Colby Goettel\and Amanda Beatty}
@@ -9,7 +10,7 @@
 \maketitle
 
 \section{Introduction}
-The main problem being addressed is that neither Amanda nor Colby knew too much about mechatronics and this project was a great learning platform for a variety of ideas and applications. The main things that Colby and Amanda wanted to learn about were writing embedded applications, controlling motors, using sensors to control actuators, and power consumption.
+The goal of this project was to create an interactive children's toy in the form of a teddy bear. This project was intended to be similar to a talking Elmo, but with different sensors and actuators. The goal was to have the bear be able to play a lullaby, hug its arms, and wiggle its ears without any wires protruding from its body. The motivation behind choosing a mechanical teddy bear was that it was a fun, achievable project that could easily be used and transported~--- a friendly, autonomous toy that a child could play with. Keeping the bear soft enough to realistically be loved by a child turned out to be a larger hurdle than anticipated, but in the end the bear met all our goals. The main learning objectives were writing embedded applications, controlling motors, using sensors to control actuators, and power consumption.
 
 \section{Designed system}
 Since the bear needs to be soft and cuddly, Frankenbear being a misnomer, is the it needed to feel right. HCI was a big concern. To solve the soft and cuddly part, light and semi-flexible components were used in the bear's big, hugging hands. A plastic, internal skeleton gave support to the body while still allowing the bear to be cuddly and approachable.
@@ -28,6 +29,37 @@ The only thing that did not meet expectations is that not enough time was given 
 
 \section{System analysis}
 \subsection{Hardware}
+A list of used hardware can be found in Table~\ref{tab:materials}.
+\begin{table}[hbt]
+    \centering
+    \begin{tabular}{lrl}
+        \toprule
+        Item & Price & Funding source \\
+        \midrule
+        Arduino Uno R3                              & \$24.95 & Colby \\
+        USB cable                                   & \$3.95  & Colby \\
+        Battery pack ($\times$2)                    & -       & CAGE \\
+        Adafruit 16-channel 12-bit PWM/Servo shield & \$17.50 & Colby \\
+        Standard servos ($\times$2)                 & \$24.00 & Colby \\ 
+        Mini servos ($\times$2)                     & owned   & Colby \\
+        Plastic for skeleton                        & -       & ME checkout room \\
+        Basic speaker                               & -       & CAGE \\
+        Light sensor (CdS photoresistor)            & \$0.95  & Colby \\
+        Zipper install                              & -       & Colby's grandma \\
+        Jumper wires                                & \$7.90  & Colby \\
+        Case                                        & -       & 3D printing free for class projects \\
+        Button                                      & -       & CAGE \\
+        Stacking header pins                        & \$1.95  & Colby \\
+        Breadboard                                  & \$5.00  & Colby \\
+        VCNL4000 proximity sensor                   & \$9.95  & CAGE \\
+        \cmidrule(r){2-2}
+        \multicolumn{1}{r}{Total}                   & \$96.15 \\
+        \bottomrule
+    \end{tabular}
+    \caption{List of materials.}
+    \label{tab:materials}
+\end{table}
+
 The bear was controlled by an Arduino Uno R3 with a PWM shield attached. This allowed the bear to drive the four servos. The Arduino and the shield were attached and stored in a 3D printed case.
 
 The skeleton of the bear was designed to be the least intrusive possible, while still providing stability and support for mechanical components. The skeleton consisted of a plastic rod (Ultra High Molecular Weight Polyethylene) attached to a round base plate. The base plate helped the bear to not fall over. The rod functioned as the bear's spine and supported the weight of the arm servos which were attached at the top of the rod and acted as shoulder joints. Plastic arms were attached to the servo motors which allowed the entire arm to move when the servo was actuated. After trimming down the size of the skeleton multiple times, it met our goals of being supportive without taking away the softness of the bear.
@@ -97,10 +129,6 @@ NOTE: Raspberry Pi connectivity is discussed in the README file in the GitHub re
 
 \clearpage
 \section*{Appendix: code}
-C: https://github.com/cgoettel/frankenbear/blob/master/frankenbear.ino
-
-~
-
-\noindent Python: https://github.com/cgoettel/frankenbear/blob/master/serial.py
+Please see attached files.
 
 \end{document}
